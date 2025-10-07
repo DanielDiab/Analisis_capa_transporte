@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/danieldiab/Downloads/202520/INFRACOM/Analisis_capa_transporte",
+      "program": "/Users/danieldiab/Downloads/202520/INFRACOM/Analisis_capa_transporte/build/Debug/outDebug"
+    }
+  ]
+}
