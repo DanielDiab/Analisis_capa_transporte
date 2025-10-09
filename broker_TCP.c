@@ -61,11 +61,11 @@ Suscriptor suscriptores[MAX_CLIENTES];
 int num_suscriptores = 0;
 
 int es_suscriptor(char *buffer) {
-    return strncmp(buffer, "TYPE:SUBSCRIBER", 16) == 0;
+    return strncmp(buffer, "TYPE:SUBSCRIBER", 15) == 0;
 }
 
 int es_publicador(char *buffer) {
-    return strncmp(buffer, "TYPE:PUBLISHER", 15) == 0;
+    return strncmp(buffer, "TYPE:PUBLISHER", 14) == 0;
 }
 
 void agregar_suscriptor(int nuevo_socket, char *partido) {
@@ -130,6 +130,7 @@ int main() {
 
             memset(buffer, 0, MAX_TAM);
             read(nuevo_socket, buffer, MAX_TAM);
+	    printf("%s", buffer);
 
             if (es_suscriptor(buffer)) {
                 char *linea = strstr(buffer, "PARTIDO:");

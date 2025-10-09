@@ -59,10 +59,10 @@ int main() {
     }
 
     // 2. Configurar dirección del broker
+    mi_bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = mi_htons(9000);
-    server_addr.sin_addr.s_addr = 0x7F000001; // 127.0.0.1
-    mi_bzero(&(server_addr.sin_zero), 8);
+    server_addr.sin_addr.s_addr = 0x0100007F; // 127.0.0.1
 
     // 3. Conectar
     if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
