@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> 
+#include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 // -----------------------------
 // DEFINICIONES MANUALES
@@ -33,6 +34,13 @@ unsigned short mi_htons(unsigned short x) {
     return ((x & 0x00FF) << 8) | ((x & 0xFF00) >> 8);
 }
 
+unsigned long mi_htonl(unsigned long x) {
+    return ((x & 0x000000FF) << 24) |
+	   ((x & 0x0000FF00) << 8)  |
+	   ((x & 0x00FF0000) >> 8)  |
+	   ((x & 0xFF000000) >> 24);
+}
+
 void mi_bzero(void *s, int n) {
     char *p = s;
     for (int i = 0; i < n; i++) {
@@ -58,14 +66,15 @@ int main() {
     }
 
     // 2. Configurar dirección del broker
+    mi_bzero(&broker_addr, sizeof(broker_addr));
     broker_addr.sin_family = AF_INET;
     broker_addr.sin_port = mi_htons(9000);
-    broker_addr.sin_addr.s_addr = 0x7F000001; // 127.0.0.1
-    mi_bzero(&(broker_addr.sin_zero), 8);
+    broker_addr.sin_addr.s_addr = mi_htonl(0x7F000001); // 127.0.0.1 a Big endian
 
     // 3. Conectar
+    printf("Intentando conectar a IP: 0x%08lX, puerto: %d\n", broker_addr.sin_addr.s_addr, 9000);
     if (connect(sockfd, (struct sockaddr *)&broker_addr, sizeof(broker_addr)) < 0) {
-        write(1, "Error al conectar\n", 18);
+        perror("Error al conectar\n");
         exit(1);
     }
 
