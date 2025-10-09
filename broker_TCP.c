@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/types.h>
 
 // Definiciones de sockets
@@ -37,7 +38,6 @@ extern int accept(int, void *, unsigned int *);
 extern int connect(int, const void *, unsigned int);
 extern int send(int, const void *, unsigned long, int);
 extern int recv(int, void *, unsigned long, int);
-extern int select(int, void *, void *, void *, void *);
 extern int setsockopt(int, int, int, const void *, unsigned int);
 // Implementaciones manuales de htons y bzero
 
@@ -94,13 +94,20 @@ int main() {
     struct sockaddr_in direccion;
 
     // Crear socket TCP
+    printf("Creando socket...\n");
     servidor = socket(AF_INET, SOCK_STREAM, 0);
+    if (servidor < 0) { perror("socket"); exit(1);}
+    printf("Configurando dirección...\n");
     direccion.sin_family = AF_INET;
     direccion.sin_addr.s_addr = INADDR_ANY;
     direccion.sin_port = mi_htons(PUERTO);
     mi_bzero(&(direccion.sin_zero), 8);
 
-    bind(servidor, (struct sockaddr *)&direccion, sizeof(direccion));
+    printf("Haciendo bind...\n");
+    if (bind(servidor, (struct sockaddr *)&direccion, sizeof(direccion)) < 0) {
+        perror("bind");
+	exit(1);
+    }
     listen(servidor, 5);
     printf("Broker esperando conexiones en el puerto %d...\n", PUERTO);
 
@@ -114,7 +121,7 @@ int main() {
             if (sd > 0) FD_SET(sd, &readfds);
             if (sd > max_sd) max_sd = sd;
         }
-
+	printf("Esperando conexiones...\n");
         actividad = select(max_sd + 1, &readfds, NULL, NULL, NULL);
 
         if (FD_ISSET(servidor, &readfds)) {
