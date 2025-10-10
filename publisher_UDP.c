@@ -68,6 +68,7 @@ int main() {
     char partido[50];
 
     // 1. Crear socket UDP
+    printf("Creando socket...\n");
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
         perror("Error al crear socket");
@@ -75,12 +76,14 @@ int main() {
     }
 
     // 2. Configurar dirección del broker
+    printf("Configurando dirección del broker...\n");
     mi_bzero(&broker_addr, sizeof(broker_addr));
     broker_addr.sin_family = AF_INET;
     broker_addr.sin_port = mi_htons(9001);
     broker_addr.sin_addr.s_addr = mi_htonl(0x7F000001); // 127.0.0.1
 
     // 3. Enviar mensaje de identificación
+    printf("Enviando mensaje de configuración...\n");
     char inicio[] = "TYPE:PUBLISHER\n";
     sendto(sockfd, inicio, strlen(inicio), 0,
            (struct sockaddr *)&broker_addr, sizeof(broker_addr));

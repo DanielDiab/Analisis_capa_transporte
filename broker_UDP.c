@@ -61,7 +61,7 @@ int num_suscriptores = 0;
 
 // Verifica si es suscriptor
 int es_suscriptor(char *buffer) {
-    return strncmp(buffer, "TYPE:SUBSCRIBER", 16) == 0;
+    return strncmp(buffer, "TYPE:SUBSCRIBER", 15) == 0;
 }
 
 // Agrega un nuevo suscriptor a la lista
@@ -100,10 +100,10 @@ int main() {
 
     // Configurar direccion
     printf("Configurando direccion...\n");
+    mi_bzero(&direccion, sizeof(direccion));
     direccion.sin_family = AF_INET;
     direccion.sin_port = mi_htons(PUERTO);
     direccion.sin_addr.s_addr = INADDR_ANY;
-    mi_bzero(&(direccion.sin_zero), 8);
 
     // Bind
     printf("Haciendo bind...\n");
@@ -117,7 +117,7 @@ int main() {
     while (1) {
         unsigned int tam_dir = sizeof(direccion_remitente);
         mi_bzero(buffer, MAX_TAM);
-
+	printf("Esperando datos...\n");
         int bytes = recvfrom(socket_broker, buffer, MAX_TAM, 0,
                              (struct sockaddr *)&direccion_remitente, &tam_dir);
 
