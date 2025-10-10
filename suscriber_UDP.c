@@ -3,14 +3,13 @@
 #include <string.h>
 #include <unistd.h>
 
-// ----------------------------
-// Constantes y definiciones
-// ----------------------------
+// -----------------------------
+// DEFINICIONES MANUALES
+// -----------------------------
 
 #define AF_INET 2
 #define SOCK_DGRAM 2
-#define PUERTO_BROKER 9001
-#define TAM_BUFFER 1024
+#define INADDR_ANY ((unsigned long int) 0x00000000)
 
 struct in_addr {
     unsigned long s_addr;
@@ -28,83 +27,97 @@ struct sockaddr {
     char sa_data[14];
 };
 
-// ----------------------------
-// Funciones del sistema
-// ----------------------------
+// -----------------------------
+// DECLARACIONES FUNCIONES
+// -----------------------------
 
 extern int socket(int, int, int);
+extern int bind(int, const void *, unsigned int);
 extern int sendto(int, const void *, unsigned long, int, const void *, unsigned int);
 extern int recvfrom(int, void *, unsigned long, int, void *, unsigned int *);
 extern int close(int);
 
-// ----------------------------
-// Funciones auxiliares
-// ----------------------------
+// -----------------------------
+// FUNCIONES AUXILIARES
+// -----------------------------
 
-unsigned short convertir_puerto(unsigned short puerto) {
-    return ((puerto & 0x00FF) << 8) | ((puerto & 0xFF00) >> 8);
+unsigned short mi_htons(unsigned short x) {
+    return ((x & 0x00FF) << 8) | ((x & 0xFF00) >> 8);
 }
 
-void limpiar_memoria(void *ptr, int cantidad) {
-    char *p = ptr;
-    for (int i = 0; i < cantidad; i++) {
+unsigned long mi_htonl(unsigned long x) {
+    return ((x & 0x000000FF) << 24) |
+           ((x & 0x0000FF00) << 8)  |
+           ((x & 0x00FF0000) >> 8)  |
+           ((x & 0xFF000000) >> 24);
+}
+
+void mi_bzero(void *s, int n) {
+    char *p = s;
+    for (int i = 0; i < n; i++) {
         p[i] = 0;
     }
 }
 
-// ----------------------------
-// Programa principal
-// ----------------------------
+// -----------------------------
+// MAIN
+// -----------------------------
 
 int main() {
-    int socket_receptor;
-    struct sockaddr_in direccion_broker, direccion_local;
-    char nombre_partido[50];
-    char buffer[TAM_BUFFER];
+    int sockfd;
+    struct sockaddr_in broker_addr, local_addr;
+    char buffer[1024];
+    char partido[50];
 
-    // Crear socket UDP
-    socket_receptor = socket(AF_INET, SOCK_DGRAM, 0);
+    // 1. Crear socket UDP
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        write(1, "Error al crear socket\n", 23);
+        exit(1);
+    }
 
-    // Configurar direccion local para recibir mensajes
-    direccion_local.sin_family = AF_INET;
-    direccion_local.sin_port = convertir_puerto(0); // Puerto asignado automáticamente
-    direccion_local.sin_addr.s_addr = 0; // Cualquier interfaz
-    limpiar_memoria(&(direccion_local.sin_zero), 8);
+    // 2. Configurar direccion local 
+    mi_bzero(&local_addr, sizeof(local_addr));
+    local_addr.sin_family = AF_INET;
+    local_addr.sin_port = mi_htons(0);       // Puerto aleatorio
+    local_addr.sin_addr.s_addr = INADDR_ANY; // Cualquier interfaz
+    if (bind(sockfd, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0) {
+        write(1, "Error en bind local\n", 21);
+        exit(1);
+    }
 
-    bind(socket_receptor, (struct sockaddr *)&direccion_local, sizeof(direccion_local));
+    // 3. Configurar direccion del broker
+    mi_bzero(&broker_addr, sizeof(broker_addr));
+    broker_addr.sin_family = AF_INET;
+    broker_addr.sin_port = mi_htons(9001);
+    broker_addr.sin_addr.s_addr = mi_htonl(0x7F000001); // 127.0.0.1
 
-    // Configurar direccion del broker
-    direccion_broker.sin_family = AF_INET;
-    direccion_broker.sin_port = convertir_puerto(PUERTO_BROKER);
-    direccion_broker.sin_addr.s_addr = 0x7F000001; // 127.0.0.1
-    limpiar_memoria(&(direccion_broker.sin_zero), 8);
+    // 4. Pedir partido
+    printf("Ingresa el nombre del partido (ej. A_vs_B): ");
+    scanf("%s", partido);
 
-    // Pedir el nombre del partido
-    printf("Nombre del partido que quieres seguir (ej: A_vs_B): ");
-    scanf("%s", nombre_partido);
-
-    // Enviar mensaje de suscripcion al broker
+    // 5. Enviar mensaje de suscripción
     char mensaje[100];
-    limpiar_memoria(mensaje, 100);
-    snprintf(mensaje, 100, "TYPE:SUBSCRIBER\nPARTIDO:%s\n", nombre_partido);
+    snprintf(mensaje, sizeof(mensaje), "TYPE:SUBSCRIBER\nPARTIDO:%s\n", partido);
+    sendto(sockfd, mensaje, strlen(mensaje), 0,
+           (struct sockaddr *)&broker_addr, sizeof(broker_addr));
 
-    sendto(socket_receptor, mensaje, strlen(mensaje), 0,
-           (struct sockaddr *)&direccion_broker, sizeof(direccion_broker));
-
-    // Esperar mensajes del broker
-    printf("Esperando mensajes del partido %s...\n", nombre_partido);
+    // 6. Esperar mensajes
+    printf("Esperando actualizaciones del partido %s...\n", partido);
 
     while (1) {
-        limpiar_memoria(buffer, TAM_BUFFER);
-        int tam_direccion = sizeof(struct sockaddr_in);
-        int bytes = recvfrom(socket_receptor, buffer, TAM_BUFFER, 0,
-                             (struct sockaddr *)&direccion_broker, &tam_direccion);
+        mi_bzero(buffer, sizeof(buffer));
+        struct sockaddr_in remitente;
+        unsigned int tam_remitente = sizeof(remitente);
+
+        int bytes = recvfrom(sockfd, buffer, sizeof(buffer), 0,
+                             (struct sockaddr *)&remitente, &tam_remitente);
 
         if (bytes > 0) {
-            printf("Mensaje recibido: %s", buffer);
+            printf("%s\n", buffer);
         }
     }
 
-    close(socket_receptor);
+    close(sockfd);
     return 0;
 }
