@@ -70,13 +70,15 @@ int main() {
     char partido[50];
 
     // 1. Crear socket UDP
+    printf("Creando socket UDP...\n");
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
         write(1, "Error al crear socket\n", 23);
         exit(1);
     }
 
-    // 2. Configurar direccion local 
+    // 2. Configurar direccion local
+    printf("Creando dirección...\n");
     mi_bzero(&local_addr, sizeof(local_addr));
     local_addr.sin_family = AF_INET;
     local_addr.sin_port = mi_htons(0);       // Puerto aleatorio
@@ -87,6 +89,7 @@ int main() {
     }
 
     // 3. Configurar direccion del broker
+    printf("Configurando dirección del broker\n");
     mi_bzero(&broker_addr, sizeof(broker_addr));
     broker_addr.sin_family = AF_INET;
     broker_addr.sin_port = mi_htons(9001);
