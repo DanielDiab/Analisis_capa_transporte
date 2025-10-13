@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
     broker.sin_port = mi_htons((unsigned short)puerto);
     broker.sin_addr.s_addr = INADDR_ANY; // simplificación, usar ip=0.0.0.0 
 
-    char mensaje[MAX_TAM];
+    char mensaje[MAX_TAM - 8];
     unsigned int seq = 0;
     unsigned int conn_id = (unsigned int)getpid(); // identificador simple
 
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
 
         // Construir payload "TOPIC:xxx| MESSAGE:..."
         char payload[MAX_TAM];
-        snprintf(payload, sizeof(payload), "TOPIC:%s| MESSAGE:%s", topic, mensaje);
+        snprintf(payload, sizeof(payload), "T: %s\nM: %s", topic, mensaje);
 
         // header bien formado
         hdr_t h; mi_bzero(&h, sizeof(h));

@@ -116,10 +116,10 @@ static int es_suscriptor(const char *buf) {
 }
 
 static int extraer_topic(const char *buf, char *out, int outlen) {
-    const char *t = strstr(buf, "TOPIC:");
+    const char *t = strstr(buf, "T:");
     if (!t) return 0;
-    t += 6;
-    const char *end = strpbrk(t, "|\r\n");
+    t += 3;
+    const char *end = strpbrk(t, "\n");
     int n = end ? (int)(end - t) : (int)strlen(t);
     if (n >= outlen) n = outlen - 1;
     memcpy(out, t, n); out[n] = '\0';
@@ -127,9 +127,9 @@ static int extraer_topic(const char *buf, char *out, int outlen) {
 }
 
 static int extraer_mensaje(const char *buf, char *out, int outlen) {
-    const char *m = strstr(buf, "MESSAGE:");
+    const char *m = strstr(buf, "M:");
     if (!m) return 0;
-    m += 8; while (*m == ' ') m++;
+    m += 3; while (*m == ' ') m++;
     int n = (int)strcspn(m, "\r\n");
     if (n >= outlen) n = outlen - 1;
     memcpy(out, m, n); out[n] = '\0';
@@ -216,6 +216,7 @@ static void enviar_data(int sock, Suscriptor *s, const char *payload, int plen) 
 static void reenviar_a_suscriptores(int sock, const char *mensaje, const char *partido) {
     /* payload de app (igual que UDP/TCP) */
     char payload[MAX_TAM];
+    memset(payload, 0, MAX_TAM);
     int plen = snprintf(payload, sizeof(payload), "[%s] %s", partido, mensaje);
     if (plen <= 0) return;
 
@@ -273,8 +274,10 @@ int main(int argc, char **argv) {
                 /* Puede ser SUB o PUB en capa de app */
                 char tmp[MAX_TAM];
                 int cpy = (pln < (int)sizeof(tmp)-1) ? pln : (int)sizeof(tmp)-1;
-                memcpy(tmp, pl, (unsigned long)cpy); tmp[cpy] = '\0';
+                memcpy(tmp, pl, (unsigned long)cpy);
+		tmp[cpy] = '\0';
 
+		printf("\n");
                 int idx = buscar_suscriptor(&cli);
                 if (idx < 0 && es_suscriptor(tmp)) {
                     char top[MAX_TOPIC];
@@ -291,7 +294,10 @@ int main(int argc, char **argv) {
                     }
                 } else {
                     /* Publicación fiable desde un publisher “QUIC-like” */
+		    printf("Mensaje recibido desde publicador\n");
                     char top[MAX_TOPIC], msg[MAX_TAM];
+		    memset(top, 0, MAX_TOPIC);
+		    memset(msg, 0, MAX_TOPIC);
                     if (extraer_topic(tmp, top, sizeof(top)) && extraer_mensaje(tmp, msg, sizeof(msg))) {
                         printf("Publicador (fiable): [%s] %s\n", top, msg);
                         reenviar_a_suscriptores(sock, msg, top);
@@ -320,6 +326,8 @@ int main(int argc, char **argv) {
             } else {
                 /* Publicador legacy: "TOPIC:...| MESSAGE:..." */
                 char top[MAX_TOPIC], msg[MAX_TAM];
+		memset(top, 0, MAX_TOPIC);
+		memset(msg, 0, MAX_TOPIC);
                 if (extraer_topic(buffer, top, sizeof(top)) && extraer_mensaje(buffer, msg, sizeof(msg))) {
                     printf("Publicador (legacy UDP): [%s] %s\n", top, msg);
                     reenviar_a_suscriptores(sock, msg, top);
