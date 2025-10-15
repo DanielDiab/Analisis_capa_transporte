@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
 
     // enviar suscripción inicial
     char payload[MAX_TAM];
-    snprintf(payload, sizeof(payload), "TYPE:SUBSCRIBER|TOPIC:%s", topic);
+    snprintf(payload, sizeof(payload), "TYPE:SUBSCRIBER|T: %s", topic);
 
     hdr_t h; mi_bzero(&h, sizeof(h));
     unsigned int conn_id = (unsigned int)getpid();
@@ -145,6 +145,7 @@ int main(int argc, char *argv[]) {
             if (h_in.flags & FLAG_DATA) {
                 char *msg = buffer + sizeof(hdr_t);
                 printf("Mensaje recibido: %s\n", msg);
+		memset(buffer, 0, MAX_TAM);
 
                 // enviar ACK
                 hdr_t ack; mi_bzero(&ack, sizeof(ack));
