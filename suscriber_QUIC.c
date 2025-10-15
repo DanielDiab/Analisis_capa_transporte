@@ -145,6 +145,7 @@ int main(int argc, char *argv[]) {
             if (h_in.flags & FLAG_DATA) {
                 char *msg = buffer + sizeof(hdr_t);
                 printf("Mensaje recibido: %s\n", msg);
+		memset(buffer, 0, MAX_TAM);
 
                 // enviar ACK
                 hdr_t ack; mi_bzero(&ack, sizeof(ack));
